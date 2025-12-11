@@ -16,29 +16,8 @@ export function SignupForm({
   ...props
 }: React.ComponentProps<"form">) {
 
-  const [form,setForm]=useState(0);
-
-  const  handleChange = e =>setForm({...form,[e.target.name]:e.target.value});
-
-  const handleSubmit=async(e)=>{
-    e.preventDefault()
-
-    try{
-      const res=await axios.post('http://localhost:8000/api/users/register/',form)
-      alert('User registered successfuly!')
-
-    }catch(err){
-      console.error(err)
-      alert("Registration failed!")
-    }
-
-  }
-  
-
-
-
-  return (
-    <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
+    return (
+    <form  className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
@@ -46,11 +25,11 @@ export function SignupForm({
             Fill in the form below to create your account
           </p>
         </div>
-        <Field onChange={handleChange}>
+        <Field >
           <FieldLabel htmlFor="name">Full Name</FieldLabel>
           <Input id="name" type="text" placeholder="John Doe" required />
         </Field>
-        <Field onChange={handleChange}>
+        <Field >
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input id="email" type="email" placeholder="m@example.com" required />
           <FieldDescription>
@@ -58,19 +37,19 @@ export function SignupForm({
             with anyone else.
           </FieldDescription>
         </Field>
-        <Field onChange={handleChange}>
+        <Field >
           <FieldLabel htmlFor="password">Password</FieldLabel>
           <Input id="password" type="password" required />
           <FieldDescription>
             Must be at least 8 characters long.
           </FieldDescription>
         </Field>
-        <Field onChange={handleChange}>
+        <Field >
           <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
           <Input id="confirm-password" type="password" required />
           <FieldDescription>Please confirm your password.</FieldDescription>
         </Field>
-        <Field onChange={handleChange}>
+        <Field >
           <Button type="submit">Create Account</Button>
         </Field>
         <FieldSeparator>Or continue with</FieldSeparator>
