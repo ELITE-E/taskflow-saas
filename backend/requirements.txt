@@ -1,15 +1,16 @@
 # Core Frameworks and API
-Django>=5.1,<5.2
+django>=5.1.0,<5.2.0
 djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
+pyyaml
+
 
 # Database Driver for PostgreSQL
- psycopg2-binary
-
- #Authentication
-djangorestframework-simplejwt
+psycopg2-binary
 
 # Background Processing (Celery)
-
+celery[redis]==5.6.0
 
 # HTTP Client for External AI API Calls
 requests
@@ -18,4 +19,4 @@ requests
 django-environ
 
 # Optional: To store Celery task results in the Django database
-#django-celery-results
+django-celery-results

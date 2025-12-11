@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rv=7%9w*+1=mmdm2wpfcc=n!m&6apc*+b%1p+*r!um-(sl(eo2'
+SECRET_KEY = 'django-insecure-1ah5@oa%*lxibtilj2#y&r_nad9z4j2n%ydw7-mlk!19@+8^xf'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,12 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
+    'api',
     'users'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -128,6 +130,34 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ),
 }
+
+AUTH_USER_MODEL='users.CustomUser'
+
+# --- CORS Configuration ---
+
+# 1. ALLOWED ORIGINS (The list of domains/ports that are explicitly allowed to make requests)
+CORS_ALLOWED_ORIGINS = [
+    # Allow the Next.js development server
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    
+    # Add your production domain(s) here later:
+    # "https://www.your-production-app.com",
+]
+
+# 2. ALLOW ALL HEADERS AND METHODS
+# This is usually safe for development/API consumption, but can be restricted if necessary.
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# 3. ALLOW COOKIES/CREDENTIALS (Necessary for JWT and potentially CSRF/Session management)
+CORS_ALLOW_CREDENTIALS = True
