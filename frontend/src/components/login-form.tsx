@@ -22,7 +22,7 @@ import {
 
 // 1. Define Zod schema
 const LoginSchema = z.object({
-  username: z.string().min(3, { message: "Username must be at least 3 characters." }),
+  email: z.email( { message: "Invalid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
 });
 
@@ -34,7 +34,7 @@ export default function LoginForm() {
   
   const form = useForm<LoginValues>({
     resolver: zodResolver(LoginSchema),
-    defaultValues: { username: '', password: '' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (values: LoginValues) => {
@@ -54,11 +54,11 @@ export default function LoginForm() {
       >
         <FormField
           control={form.control}
-          name="username"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl><Input placeholder="john_doe" {...field} /></FormControl>
+              <FormLabel>Email</FormLabel>
+              <FormControl><Input placeholder="john_doe@example.com" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}

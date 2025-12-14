@@ -13,7 +13,9 @@ export const handleLogin = async (credentials: any, dispatch: Dispatch<any>, rou
   try {
     // Calls /api/v1/auth/login/
     const response = await apiClient.post(`${API_AUTH_URL}/login/`, credentials);
-    
+    console.log('The payload data:',credentials)
+    console.log("The response data :",response.data)
+    console.log("The response status:",response.status)
     // We expect access, refresh tokens, and user details in the response
     const { access, refresh, user } = response.data; 
 

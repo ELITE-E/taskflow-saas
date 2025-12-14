@@ -1,3 +1,4 @@
+from datetime import timedelta
 """
 Django settings for tfshome project.
 
@@ -161,3 +162,19 @@ CORS_ALLOW_METHODS = [
 
 # 3. ALLOW COOKIES/CREDENTIALS (Necessary for JWT and potentially CSRF/Session management)
 CORS_ALLOW_CREDENTIALS = True
+
+SIMPLE_JWT = {
+    # 1. Access Token: Set to a very safe, generous amount for local development (e.g., 10 minutes)
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
+    
+    # 2. Refresh Token: Keep the default, or slightly longer
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7), # 7 days is standard and safer than 1
+
+    # Ensure this setting is correct for the serializer we custom-defined
+    'TOKEN_OBTAIN_PAIR_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainPairSerializer',
+
+    # Optional: If you want to customize token verification/payload (we already did this in our custom serializer)
+    # 'AUTH_HEADER_TYPES': ('Bearer',),
+    # 'USER_ID_FIELD': 'id',
+    # 'USER_ID_CLAIM': 'user_id',
+}

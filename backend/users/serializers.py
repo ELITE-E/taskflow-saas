@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 #Dynamically retrieve user model created in settings.py
-User=get_user_model
+User=get_user_model()
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password=serializers.CharField(
@@ -84,19 +84,28 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         )
         read_only_fields=fields
 
+
+
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Customizes the TokenObtainPairSerializer to use 'email' 
-    instead of 'username' for the authentication field.
+    Customizes the TokenObtainPairSerializer to use 'email' and 
+    include the UserDetailSerializer data in the response payload.
     """
-    # Overriding the default `username_field` to 'email' ensures the serializer
-    # looks up the user based on the email provided in the login payload.
     username_field = 'email' 
     
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        # Add custom claims to the token payload (accessible in the frontend)
-        token['email'] = user.email 
-        token['full_name'] = user.get_full_name()
-        return token
+    # Override the validate method to include user data
+    def validate(self, attrs):
+        # 1. Run default validation to get tokens
+        data = super().validate(attrs)
+
+        # 2. Get the authenticated user object
+        user = self.user # Simple JWT sets self.user during validation
+
+        # 3. Serialize the user details
+        user_serializer = UserDetailsSerializer(user)
+        
+        # 4. Append the serialized user data to the response payload
+        data['user'] = user_serializer.data
+
+        return data

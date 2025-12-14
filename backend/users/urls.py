@@ -1,12 +1,12 @@
 from django.urls import path
 from .views import RegisterView,user_detail_view
-from rest_framework_simplejwt.views import TokenRefreshView# We still import the base TokenObtainPairView
-from rest_framework_simplejwt.views import TokenObtainPairView # Import the custom serializer defined below
+from rest_framework_simplejwt.views import (TokenRefreshView,
+                                            TokenObtainPairView)# We still import the base TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer 
 
 
 urlpatterns = [
-    # Custom registration endpoint (No change needed here)
+    # Custom registration endpoiNT
     path('register/',RegisterView, name='auth_register'),
     
     
