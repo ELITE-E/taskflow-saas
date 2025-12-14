@@ -1,10 +1,10 @@
-// /src/hooks/useAuthCheck.ts (FINAL IMPLEMENTATION)
+// /src/hooks/useAuthCheck.ts (DEBUGGING & ROBUSTNESS UPDATE)
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import Cookies from 'js-cookie';
-import { setLoading, setUser, logout } from '@/redux/slices/authReducer'; // Import logout
-import apiClient from '@/lib/apiClient'; // Import the client with interceptors
+import { setLoading, setUser, logout } from '@/redux/slices/authReducer';
+import apiClient from '@/lib/apiClient'; // Ensure correct client import
 
 export const useAuthCheck = () => {
     const dispatch = useDispatch();
@@ -12,33 +12,49 @@ export const useAuthCheck = () => {
     useEffect(() => {
         const checkAuthStatus = async () => {
             const accessToken = Cookies.get('access_token');
+            const refreshToken = Cookies.get('refresh_token');
 
-            // 1. Quick check: If no access token, we are logged out (end loading)
-            if (!accessToken) {
-                dispatch(logout());
+            if (!accessToken && !refreshToken) {
+                console.log("AUTH CHECK: No tokens found. User is logged out.");
+                dispatch(logout()); // Ensure state is reset
                 dispatch(setLoading(false));
                 return;
             }
+
+            console.log("AUTH CHECK: Token(s) found. Attempting session verification...");
             
-            // 2. Secure API Call to verify token validity and fetch user details
+            // 1. Attempt to call a protected endpoint
             try {
-                // This request is protected. If the token is expired, the interceptor 
-                // will automatically try to refresh it and retry this call.
-                const response = await apiClient.get('/auth/user/');
+                // If the accessToken is valid, we get user data.
+                // If it's expired, the Interceptor will attempt to refresh it and retry this call.
+                const response = await apiClient.get('/auth/user/'); 
                 
-                // If successful (token was valid or successfully refreshed):
+                // Success: Token was valid or successfully renewed and retried.
                 dispatch(setUser(response.data));
-            } catch (error) {
-                // If the interceptor fails to refresh the token (refresh token expired),
-                // the final error is caught here. We ensure the user is logged out.
-                dispatch(logout());
+                console.log("AUTH CHECK: Success! User session verified and set.");
+                
+            } catch (error: any) {
+                console.error("AUTH CHECK: Verification failed after refresh attempt.", error.response?.status, error.message);
+                
+                // If the interceptor failed to renew the token, the error status will be caught here.
+                // The interceptor's job is to clear cookies, but we finalize Redux state here.
+                if (error.response?.status === 401) {
+                    // This 401 means the refresh token failed, or the initial token was bad.
+                    dispatch(logout());
+                    console.log("AUTH CHECK: Final 401 received. User logged out.");
+                } else {
+                    // Handle network errors or other non-auth errors gracefully
+                    console.error("AUTH CHECK: Non-401 error. Assuming session is invalid.");
+                    dispatch(logout());
+                }
             } finally {
-                // 3. Crucial step: End the loading state unconditionally
+                // 2. Crucial Step: ALWAYS end the loading state.
                 dispatch(setLoading(false));
+                console.log("AUTH CHECK: Loading state finalized.");
             }
         };
 
         checkAuthStatus();
         
-    }, [dispatch]); // Run only on mount
+    }, [dispatch]);
 };

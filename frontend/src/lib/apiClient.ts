@@ -2,8 +2,6 @@
 
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { Dispatch } from '@reduxjs/toolkit';
-import { setUser, logout, setError } from '@/redux/slices/authReducer';
 
 // --- Base Setup ---
 const API_BASE_URL = 'http://localhost:8000/api/v1'; // Change to the base API URL (e.g., /api/v1)
@@ -19,7 +17,7 @@ export const refreshAccessToken = async () => {
     if (!refreshToken) return null;
 
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+        const response = await axios.get(`${API_BASE_URL}/auth/token/refresh/`, {
             refresh: refreshToken
         });
         const { access } = response.data;
