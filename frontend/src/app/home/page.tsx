@@ -12,6 +12,8 @@ import { LogOut, User } from 'lucide-react';
 import { useEffect } from 'react'; 
 import GoalForm from '@/components/goals/GoalForm';
 import GoalList from '@/components/goals/GoalList';
+import TaskForm from '@/components/tasks/TaskForm';
+import TaskList from '@/components/tasks/TaskList';
 export default function HomePage() {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -100,18 +102,20 @@ export default function HomePage() {
             </Button>
         </header>
 
-        {/* Goals Management Grid */}
-        <main className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Column 1: Goal Creation Form */}
-            <div className="md:col-span-1">
-                <GoalForm />
+            {/* COLUMN 1: Task Management (Input & List) */}
+            <div className="space-y-8">
+                <TaskForm />
+                <TaskList />
             </div>
 
-            {/* Column 2 & 3: Goal List Display */}
-            <div className="md:col-span-2">
+            {/* COLUMN 2: Goal Management (Form & List) */}
+            <div className="space-y-8">
+                <GoalForm />
                 <GoalList />
             </div>
+
         </main>
 
       </div>

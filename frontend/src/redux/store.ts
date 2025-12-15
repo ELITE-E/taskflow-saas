@@ -1,6 +1,7 @@
 import {configureStore} from '@reduxjs/toolkit'
 import authReducer from './slices/authReducer'
 import goalsReducer from './slices/goalsSlice'
+import taskReducer from './slices/tasksSlice'
 
 export const store= configureStore({
     /**
@@ -9,7 +10,8 @@ export const store= configureStore({
      */
     reducer:{
         auth:authReducer,
-        goals:goalsReducer
+        goals:goalsReducer,
+        tasks:taskReducer
     }})
 
 //Define types for global state  and for dispatch
