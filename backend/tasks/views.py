@@ -1,6 +1,7 @@
 from django.shortcuts import render
 
 # Create your views here.
+from datetime import date
 from rest_framework import generics, permissions
 from .models import Task
 from .serializers import TaskSerializer
@@ -42,3 +43,17 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Task.objects.filter(user=self.request.user)
     
 retreive_update_destroy_view=TaskRetrieveUpdateDestroyView.as_view()
+
+class PrioritizedTaskList(generics.ListAPIView):
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # This view filters tasks that have already been scored (is_prioritized = True)
+        return Task.objects.filter(
+            user=self.request.user,
+            is_completed=False,
+            is_prioritized=True # <-- CRITICAL FILTER
+        ).order_by('-priority_score') # Sort by the final calculated score
+    
+tasks_list_view=PrioritizedTaskList.as_view()

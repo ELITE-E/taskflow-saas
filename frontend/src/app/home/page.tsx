@@ -14,6 +14,7 @@ import GoalForm from '@/components/goals/GoalForm';
 import GoalList from '@/components/goals/GoalList';
 import TaskForm from '@/components/tasks/TaskForm';
 import TaskList from '@/components/tasks/TaskList';
+import PrioritizationMatrix from '@/components/tasks/PrioritizationMatrix';
 export default function HomePage() {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -107,13 +108,16 @@ export default function HomePage() {
             {/* COLUMN 1: Task Management (Input & List) */}
             <div className="space-y-8">
                 <TaskForm />
-                <TaskList />
+                <GoalForm />
             </div>
 
-            {/* COLUMN 2: Goal Management (Form & List) */}
-            <div className="space-y-8">
-                <GoalForm />
+            {/* COLUMN 2: Goal Management (Form & List) 
+            
+                <TaskList />
                 <GoalList />
+            */}
+            <div className="space-y-8">
+                <PrioritizationMatrix/>
             </div>
 
         </main>

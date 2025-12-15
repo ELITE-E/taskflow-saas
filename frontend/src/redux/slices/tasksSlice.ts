@@ -18,11 +18,11 @@ const initialState: TasksState = {
 
 // --- ASYNCHRONOUS THUNKS ---
 
-export const getTasks = createAsyncThunk<Task[], void>(
-    'tasks/getTasks',
+export const getPrioritizedTasks = createAsyncThunk<Task[], void>(
+    'tasks/getPrioritizedTasks',
     async (_, { rejectWithValue }) => {
         try {
-            return await tasksApi.fetchTasks();
+            return await tasksApi.fetchPrioritizedTasks();
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.detail || 'Failed to fetch tasks.');
         }
@@ -79,17 +79,18 @@ const tasksSlice = createSlice({
     extraReducers: (builder) => {
         builder
             // --- GET TASKS ---
-            .addCase(getTasks.pending, (state) => {
+            .addCase(getPrioritizedTasks.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(getTasks.fulfilled, (state, action: PayloadAction<Task[]>) => {
+            .addCase(getPrioritizedTasks.fulfilled, (state, action: PayloadAction<Task[]>) => {
                 state.loading = false;
                 state.tasks = action.payload;
             })
-            .addCase(getTasks.rejected, (state, action) => {
+            .addCase(getPrioritizedTasks.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+                state.tasks=[];
             })
             // --- ADD TASK ---
             .addCase(addTask.fulfilled, (state, action: PayloadAction<Task>) => {

@@ -4,6 +4,7 @@ from django.db import models
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from goals.models import Goal
 
 class Task(models.Model):
     """
@@ -17,8 +18,27 @@ class Task(models.Model):
         verbose_name=_("user")
     )
 
+    # CRITICAL ADDITION: Link to the Goal model
+    goal = models.ForeignKey(
+        Goal,
+        on_delete=models.SET_NULL, # If a Goal is deleted, the task remains (goal=null)
+        null=True, blank=True, # Task can exist without a goal
+        related_name='tasks',
+        verbose_name=_("associated goal")
+    )
+
     title = models.CharField(max_length=255, verbose_name=_("title"))
     description = models.TextField(blank=True, verbose_name=_("description"))
+    priority_score = models.FloatField(
+        default=0.0,
+        verbose_name=_("priority score"),
+        help_text=_("AI-calculated score for prioritization.")
+    )
+    is_prioritized = models.BooleanField(
+        default=False,
+        verbose_name=_("is prioritized"),
+        help_text=_("Flag indicating if the task has been processed by the AI engine.")
+    )
     
     # Task planning fields
     due_date = models.DateField(
@@ -43,7 +63,7 @@ class Task(models.Model):
         verbose_name = _("Task")
         verbose_name_plural = _("Tasks")
         # Default sorting: active tasks first, then by earliest due date
-        ordering = ['is_completed', 'due_date', '-created_at']
+        ordering = ['is_completed','-priority_score', 'due_date', '-created_at']
 
     def __str__(self):
         return f"Task for {self.user.username}: {self.title}"
