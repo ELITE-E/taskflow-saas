@@ -17,7 +17,7 @@ export const refreshAccessToken = async () => {
     if (!refreshToken) return null;
 
     try {
-        const response = await axios.get(`${API_BASE_URL}/auth/token/refresh/`, {
+        const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
             refresh: refreshToken
         });
         const { access } = response.data;
