@@ -11,6 +11,9 @@ export interface Task {
     is_completed: boolean;
     created_at: string;
     updated_at: string;
+    priority_score:number;
+    goal:number | null;
+    goal_weight:number|null;
 }
 
 // Interface for data sent when creating/updating
@@ -20,4 +23,5 @@ export interface TaskPayload {
     due_date?: string | null;
     effort_estimate?: number;
     is_completed?: boolean;
+    goal?:number |null ;
 }

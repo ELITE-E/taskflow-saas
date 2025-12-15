@@ -2,14 +2,20 @@ import apiClient from '@/lib/apiClient';
 import { Task, TaskPayload } from '@/types/tasks';
 
 const TASKS_BASE_URL = '/tasks/'; // Matches our backend config: /api/v1/tasks/
+const TASK_PRIORITIZE_URL='/tasks/prioritize/';
 
+/** Fetches the prioritized tasks list sorted by the tsk score */
+export const fetchPrioritizedTasks=async():Promise<Task[]>=>{
+    const response= await apiClient.get(TASK_PRIORITIZE_URL);
+    return response.data}
 /**
  * Fetches all active (is_completed=false) tasks for the authenticated user.
  */
-export const fetchTasks = async (): Promise<Task[]> => {
-    const response = await apiClient.get(TASKS_BASE_URL);
-    return response.data;
-};
+
+// export const fetchTasks = async (): Promise<Task[]> => {
+//     const response = await apiClient.get(TASKS_BASE_URL);
+//     return response.data;
+// };
 
 /**
  * Creates a new task.
