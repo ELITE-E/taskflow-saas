@@ -20,3 +20,6 @@ django-environ
 
 # Optional: To store Celery task results in the Django database
 django-celery-results
+
+#openai:The AI engine
+openai
