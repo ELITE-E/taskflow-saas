@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, Optional
 from .rules import DecisionEngine
 from .cache import AIScoringCache
-from .services import ExternalAIScorer
+from ..services import ExternalAIScorer
 
 # Configure logging for pipeline auditing
 logger = logging.getLogger(__name__)

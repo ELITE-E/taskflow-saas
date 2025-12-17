@@ -34,6 +34,12 @@ class Task(models.Model):
         verbose_name=_("priority score"),
         help_text=_("AI-calculated score for prioritization.")
     )
+    celery_task_id = models.CharField(
+        max_length=255, 
+        null=True, 
+        blank=True,
+        help_text=_("The ID of the background process handling the AI scoring.")
+    )
     is_prioritized = models.BooleanField(
         default=False,
         verbose_name=_("is prioritized"),

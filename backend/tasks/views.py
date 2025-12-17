@@ -44,16 +44,21 @@ class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     
 retreive_update_destroy_view=TaskRetrieveUpdateDestroyView.as_view()
 
-class PrioritizedTaskList(generics.ListAPIView):
+
+    
+class PrioritizedTaskListView(generics.ListAPIView):
+    """
+    Returns a list of tasks that have completed the AI prioritization pipeline.
+    Ordered by priority_score descending.
+    """
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
-        # This view filters tasks that have already been scored (is_prioritized = True)
         return Task.objects.filter(
             user=self.request.user,
-            is_completed=False,
-            is_prioritized=True # <-- CRITICAL FILTER
-        ).order_by('-priority_score') # Sort by the final calculated score
+            is_prioritized=True,
+            is_completed=False
+        ).order_by('-priority_score')
     
-tasks_list_view=PrioritizedTaskList.as_view()
+tasks_list_view=PrioritizedTaskListView.as_view()

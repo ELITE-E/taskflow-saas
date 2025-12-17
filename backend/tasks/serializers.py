@@ -1,31 +1,56 @@
+# tasks/serializers.py
+
+from django.db import transaction
 from rest_framework import serializers
 from .models import Task
+from .ai_engine.celery_tasks import run_ai_relevance_scoring
 
 class TaskSerializer(serializers.ModelSerializer):
-    # Read-only field for user identification
-    user_email = serializers.ReadOnlyField(source='user.email') 
-
-    goal_weight=serializers.ReadOnlyField(source='goal.weight')
-
-    #Introducing the READONLY fields
-    priority_score=serializers.ReadOnlyField()
-    is_prioritized=serializers.ReadOnlyField()
+    # Field to return the Celery ID to the frontend for polling/tracking
+    async_status_id = serializers.ReadOnlyField(source='celery_task_id')
 
     class Meta:
         model = Task
-        fields = (
-            'id', 'user', 'user_email', 'title', 'description', 
-            'due_date', 'effort_estimate', 'is_completed', 
-            'created_at', 'updated_at','goal','goal_weight',
-            'priority_score','is_prioritized'
-        )
-        read_only_fields = ('id', 'user', 'is_prioritized','goal_weight','priority_score','created_at', 'updated_at')
+        fields = [
+            'id', 'title', 'description', 'goal', 'due_date', 
+            'is_prioritized', 'priority_score', 'async_status_id'
+        ]
+        read_only_fields = ['is_prioritized', 'priority_score']
 
-    # Security measure: automatically assign the current authenticated user on creation.
-    def create(self, validated_data):
+    def create(self, validated_data: dict) -> Task:
+        """
+        Creates a task and triggers the AI orchestration pipeline.
+        
+        Uses an atomic transaction to ensure data integrity and triggers 
+        Celery only after a successful DB commit.
+        """
         user = self.context['request'].user
-        if not user.is_authenticated:
-            raise serializers.ValidationError("Authentication required.")
+        
+        # 1. Extract weights (In production, fetch from UserProfile or StrategicGoals model)
+        # Here we use a placeholder dict; in a real app, you'd fetch user.profile.weights
+        user_weights = {
+            "work_bills": 0.8,
+            "study": 0.5,
+            "health": 0.4,
+            "relationships": 0.3
+        }
+
+        with transaction.atomic():
+            # 2. Save the initial Task record
+            task = Task.objects.create(user=user, **validated_data)
             
-        validated_data['user'] = user
-        return super().create(validated_data)
+            # 3. Define the async trigger logic
+            def trigger_ai():
+                celery_result = run_ai_relevance_scoring.delay(
+                    task_id=task.id,
+                    task_title=task.title,
+                    task_description=task.description,
+                    user_weights=user_weights
+                )
+                # Update task with the process ID for frontend tracking
+                Task.objects.filter(id=task.id).update(celery_task_id=celery_result.id)
+
+            # 4. Schedule the trigger for AFTER the DB transaction closes
+            transaction.on_commit(trigger_ai)
+
+        return task

@@ -11,9 +11,12 @@ export interface Task {
     is_completed: boolean;
     created_at: string;
     updated_at: string;
-    priority_score:number;
+    priority_score:number; //score calculated by comput.py
     goal:number | null;
     goal_weight:number|null;
+    is_prioritized: boolean;    // The boolean flag we added to the model
+    async_status_id?: string;   // The Celery Task ID (optional)
+    quadrant?: 'Q1' | 'Q2' | 'Q3' | 'Q4';// Optional: If you've implemented the Quadrant logic
 }
 
 // Interface for data sent when creating/updating
