@@ -6,12 +6,14 @@ import * as tasksApi from '@/lib/tasks-api';
 
 interface TasksState {
     tasks: Task[];
+    prioritizedItems:Task[];
     loading: boolean;
     error: string | null;
 }
 
 const initialState: TasksState = {
     tasks: [],
+    prioritizedItems:[],
     loading: false,
     error: null,
 };
@@ -28,7 +30,7 @@ export const getPrioritizedTasks = createAsyncThunk<Task[], void>(
         }
     }
 );
-
+export const selectPrioritizedTasks = (state: RootState) => state.tasks.items;
 export const addTask = createAsyncThunk<Task, TaskPayload>(
     'tasks/addTask',
     async (payload, { rejectWithValue }) => {

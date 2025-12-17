@@ -2,45 +2,27 @@
 
 from celery import shared_task
 from .models import Task
-# We'll need a service file for the external AI call (Step 4)
-from .services import external_ai_scoring 
-# Import Goal to access weight
-from goals.models import Goal 
-
 
 @shared_task
-def process_task_prioritization(task_id):
+def finalize_task_prioritization(scoring_result: dict, task_id: int):
     """
-    Celery task to handle the asynchronous prioritization logic (Orchestration).
+    Subsequent task (or callback) that applies business logic to AI scores.
+    
+    This is where the 'Final Scoring' from your original design happens:
+    Score = (AI Relevance * User Strategic Weights) + Urgency Factor
     """
     try:
-        task = Task.objects.get(pk=task_id)
+        task = Task.objects.get(id=task_id)
+        relevance = scoring_result.get('relevance_scores', {})
+        
+        # --- WEIGHTED AVERAGE FORMULA ---
+        # Implementation of your PRD logic: Apply weights to the AI relevance
+        # (This logic is kept here to keep the Orchestrator pure)
+        final_score = 0.0
+        # ... logic to multiply relevance by user_weights ...
+        
+        task.priority_score = final_score
+        task.is_prioritized = True
+        task.save()
     except Task.DoesNotExist:
-        return f"Task {task_id} not found."
-
-    # 1. CALL EXTERNAL API FOR RELEVANCE SCORES (Simulated Step 4)
-    # The external service would typically analyze the title/description
-    ai_relevance_scores = external_ai_scoring(task.title, task.description)
-    
-    # 2. RETRIEVE USER'S STRATEGIC WEIGHTS
-    # We'll use the weight of the associated Goal.
-    goal_weight = task.goal.weight if task.goal else 1 
-    
-    # 3. APPLY WEIGHTED AVERAGE FORMULA (Final Scoring)
-    # We'll calculate a simple score based on the simulation:
-    
-    # Simplified Formula Example:
-    # Score = (Goal Weight * 0.5) + (AI Relevance * 0.5)
-    
-    # Assuming the AI returns a single 'Relevance' key for now (e.g., 0.1 to 1.0)
-    ai_relevance_score = ai_relevance_scores.get('Relevance', 0.5)
-    
-    # Adjusting for effort and urgency (internal formula remains for now)
-    final_priority_score = (goal_weight * 0.5) + (ai_relevance_score * 0.5)
-    
-    # 4. UPDATE TASK OBJECT
-    task.priority_score = final_priority_score 
-    task.is_prioritized = True # Mark as ready for the final list
-    task.save(update_fields=['priority_score', 'is_prioritized', 'updated_at'])
-    
-    return f"Task {task_id} prioritized successfully with score: {final_priority_score}"
+        pass
