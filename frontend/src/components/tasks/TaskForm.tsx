@@ -16,8 +16,12 @@ import { Calendar, Loader2, Plus } from 'lucide-react';
 
 const TaskSchema = z.object({
   title: z.string().min(1, "Title is required.").max(255),
+  description: z.string().min(1, "Description is required.").max(255),
+
   // Date input usually comes as a string in YYYY-MM-DD format
   due_date: z.string().nullable().optional(), 
+  effort_hours: z.string().min(1, "Effort in hours is required.").max(255),
+  category: z.string().min(1, "Category is required.").max(255),
 });
 
 type TaskFormValues = z.infer<typeof TaskSchema>;
@@ -60,7 +64,20 @@ export default function TaskForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Task Title</FormLabel>
-                  <FormControl><Input placeholder="e.g., Draft Module 3 documentation" {...field} /></FormControl>
+                  <FormControl><Input placeholder="e.g., Pay electricity and internet bills" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+              {/* Description Field */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel> Description</FormLabel>
+                  <FormControl><Input placeholder="e.g., Services my be cut" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -74,6 +91,32 @@ export default function TaskForm() {
                 <FormItem>
                   <FormLabel className="flex items-center"><Calendar className="w-4 h-4 mr-1"/>Due Date</FormLabel>
                   <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+              {/* EffortField */}
+            <FormField
+              control={form.control}
+              name="effort_hours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Effort in Hours</FormLabel>
+                  <FormControl><Input placeholder="e.g., 0.5" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+              {/* Category Field */}
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl><Input placeholder="e.g., Work, Personal, Bills etc." {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
