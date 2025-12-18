@@ -1,4 +1,5 @@
 from datetime import timedelta
+import os
 """
 Django settings for tfshome project.
 
@@ -187,3 +188,5 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC' # Use the same timezone as Django
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

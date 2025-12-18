@@ -15,7 +15,7 @@ import GoalList from '@/components/goals/GoalList';
 import TaskForm from '@/components/tasks/TaskForm';
 import TaskList from '@/components/tasks/TaskList';
 import PrioritizationMatrix from '@/components/tasks/PrioritizationMatrix';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+//import { useTaskPolling } from '@/hooks/useTaskPolling';
 export default function HomePage() {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function HomePage() {
         </div>
     );
   }
-useTaskPolling()
+//useTaskPolling()
   // 3. Render Dashboard Content (Only runs if isAuthenticated is true)
   return (
     // <div className="flex min-h-screen bg-gray-50 p-8">

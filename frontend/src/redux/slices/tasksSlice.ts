@@ -30,7 +30,7 @@ export const getPrioritizedTasks = createAsyncThunk<Task[], void>(
         }
     }
 );
-export const selectPrioritizedTasks = (state: RootState) => state.tasks.items;
+export const selectPrioritizedTasks = (state: any) => state.tasks.tasks;
 export const addTask = createAsyncThunk<Task, TaskPayload>(
     'tasks/addTask',
     async (payload, { rejectWithValue }) => {

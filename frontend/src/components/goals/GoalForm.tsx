@@ -19,7 +19,16 @@ import { Loader2, PlusCircle } from 'lucide-react';
 const GoalSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters.").max(255),
   description: z.string().min(10, "Description must be detailed.").max(1000),
-  weight: z.number().min(1, "Must be 1-10.").max(10, "Must be 1-10.").default(5),
+  // Preprocess incoming values: convert string -> number (handles empty string too)
+  weight: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      // empty string -> undefined so required/default behavior remains consistent
+      return val === '' ? undefined : Number(val);
+    }
+    return val;
+  }, z.number().min(1, "Must be 1-10.").max(10, "Must be 1-10.").default(5)),
+  // Category field: simple validated string. Adjust allowed values if you have fixed categories.
+  category: z.string().min(1, "Select a category").max(100, "Category name too long").default('General'),
 });
 
 type GoalFormValues = z.infer<typeof GoalSchema>;
@@ -34,6 +43,7 @@ export default function GoalForm() {
       title: "",
       description: "",
       weight: 5,
+      category: 'General',
     },
   });
 
@@ -90,15 +100,44 @@ export default function GoalForm() {
                 <FormItem>
                   <FormLabel>Strategic Weight (1-10)</FormLabel>
                   <FormControl>
-                    {/* Convert string input to number for Zod validation */}
+                    {/* Ensure the controller receives a number */}
                     <Input 
                         type="number" 
                         placeholder="5" 
                         min={1} 
                         max={10}
                         {...field} 
-                        onChange={event => field.onChange(parseInt(event.target.value))}
+                        value={field.value ?? ''}
+                        onChange={event => field.onChange(Number(event.target.value))}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Category Field */}
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      className="w-full rounded border px-3 py-2"
+                      value={field.value}
+                      onChange={e => field.onChange(e.target.value)}
+                    >
+                      <option value="General">General</option>
+                      <option value="Work">Work</option>
+                      <option value="Personal">Personal</option>
+                      <option value="Health">Health</option>
+                      <option value="Study">Study</option>
+                      <option value="Relationships">Relationships</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
