@@ -15,20 +15,19 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Loader2, PlusCircle } from 'lucide-react';
 
-// Define Zod schema for validation
+// Schema matches backend Goal serializer fields: title, description, weight, category (if backend exposes it)
 const GoalSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters.").max(255),
   description: z.string().min(10, "Description must be detailed.").max(1000),
-  // Preprocess incoming values: convert string -> number (handles empty string too)
+  // coerce to integer 1..10; frontend will not normalize — backend normalizes
   weight: z.preprocess((val) => {
     if (typeof val === 'string') {
-      // empty string -> undefined so required/default behavior remains consistent
-      return val === '' ? undefined : Number(val);
+      const n = Number(val);
+      return Number.isFinite(n) ? Math.round(n) : n;
     }
     return val;
-  }, z.number().min(1, "Must be 1-10.").max(10, "Must be 1-10.").default(5)),
-  // Category field: simple validated string. Adjust allowed values if you have fixed categories.
-  category: z.string().min(1, "Select a category").max(100, "Category name too long").default('General'),
+  }, z.number().int().min(1, "Must be 1-10.").max(10, "Must be 1-10.")),
+  category: z.string().min(1, "Select a category").max(100, "Category name too long"),
 });
 
 type GoalFormValues = z.infer<typeof GoalSchema>;
@@ -48,20 +47,30 @@ export default function GoalForm() {
   });
 
   const onSubmit = async (values: GoalFormValues) => {
-    // Dispatch the thunk to create a new goal
-    const result = await dispatch(addGoal(values));
+    // Do NOT normalize here. Send as-is; backend will normalize.
+    const payload = {
+      title: values.title,
+      description: values.description,
+      weight: Number(values.weight),
+      category: values.category,
+    };
+
+    const result = await dispatch(addGoal(payload));
     
-    // Check if the creation was successful and reset the form
     if (addGoal.fulfilled.match(result)) {
       form.reset(); // Clear the form fields
       alert('Goal created successfully!');
     }
-    // Error handling is managed by the Redux slice (though we could display a toast here)
   };
 
   return (
     <Card>
-      <CardHeader><CardTitle className="flex items-center space-x-2"><PlusCircle className="w-5 h-5 text-green-600" /><span>Create New Goal</span></CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <PlusCircle className="w-5 h-5 text-green-600" />
+          <span>Create New Goal</span>
+        </CardTitle>
+      </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -100,7 +109,6 @@ export default function GoalForm() {
                 <FormItem>
                   <FormLabel>Strategic Weight (1-10)</FormLabel>
                   <FormControl>
-                    {/* Ensure the controller receives a number */}
                     <Input 
                         type="number" 
                         placeholder="5" 
@@ -111,6 +119,7 @@ export default function GoalForm() {
                         onChange={event => field.onChange(Number(event.target.value))}
                     />
                   </FormControl>
+                  <p className="text-sm text-gray-500">Weights will be normalized automatically on the server.</p>
                   <FormMessage />
                 </FormItem>
               )}

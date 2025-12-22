@@ -9,8 +9,18 @@ const API_BASE_URL = 'http://localhost:8000/api/v1'; // Change to the base API U
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
+// Add request interceptor to attach access token as Bearer
+apiClient.interceptors.request.use((config) => {
+  const token = Cookies.get('access_token');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
 // --- Token Refresh Helper ---
 export const refreshAccessToken = async () => {
     const refreshToken = Cookies.get('refresh_token');
@@ -87,5 +97,6 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
 
 export default apiClient;

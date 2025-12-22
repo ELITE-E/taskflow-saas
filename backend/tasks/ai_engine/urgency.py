@@ -1,49 +1,58 @@
-import datetime
 from typing import Optional
+import datetime
 
 # Maximum horizon for urgency scaling (e.g., tasks 30 days out have base urgency 0)
 MAX_LOOKAHEAD_DAYS = 30
 
 def compute_urgency(
-    due_date: Optional[datetime.datetime],
+    due_date: Optional[str],
     effort_hours: Optional[float] = None,
     now: Optional[datetime.datetime] = None
 ) -> float:
     """
     Calculates a normalized urgency score between 0.0 and 1.0.
-    
-    The score is determined primarily by the proximity of the due_date, 
-    with a small boost based on the estimated effort required.
+
+    due_date: ISO date string 'YYYY-MM-DD' or None
+    effort_hours: numeric estimate (use effort_estimate field)
     """
-    
-    # 1. Handle missing due date (Low default urgency)
-    if due_date is None:
-        return 0.2
-
-    # Ensure 'now' is defined for the calculation
     if now is None:
-        now = datetime.datetime.now(tz=due_date.tzinfo)
+        now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
 
-    # 2. Calculate time delta
-    time_diff = due_date - now
-    days_remaining = time_diff.total_seconds() / (24 * 3600)
+    # Default low urgency when no due date
+    if not due_date:
+        # incorporate effort slightly: map effort 1-5 -> 0-0.2
+        effort_component = 0.0
+        if effort_hours is not None:
+            try:
+                effort_component = max(0.0, min(1.0, (float(effort_hours) - 1.0) / 4.0)) * 0.2
+            except Exception:
+                effort_component = 0.0
+        return round(min(1.0, effort_component), 4)
 
-    # 3. Handle overdue or immediate tasks
-    if days_remaining <= 0:
+    # Parse date (assume YYYY-MM-DD)
+    try:
+        d = datetime.datetime.strptime(due_date, "%Y-%m-%d").date()
+    except Exception:
+        # invalid date -> fallback low urgency
+        return 0.0
+
+    today = now.date()
+    days_until = (d - today).days
+
+    if days_until <= 0:
+        # Due now or past -> maximum urgency
         return 1.0
 
-    # 4. Calculate Base Urgency
-    # Inverse linear relationship: 0 days = 1.0 urgency, 30+ days = 0.0 urgency
-    base_urgency = 1.0 - (days_remaining / MAX_LOOKAHEAD_DAYS)
-    base_urgency = max(0.0, min(1.0, base_urgency))
+    # Scale linearly: 0 days -> 1.0, MAX_LOOKAHEAD_DAYS or beyond -> 0.0
+    due_component = max(0.0, min(1.0, 1.0 - (days_until / float(MAX_LOOKAHEAD_DAYS))))
 
-    # 5. Calculate Effort Modifier
-    # High effort increases urgency (max +0.2). 
-    # Logic: If a task takes 10+ hours, we should start it sooner.
-    effort = effort_hours or 0.0
-    effort_modifier = min(effort / 10.0, 0.2)
+    # effort component: map 1..5 -> 0..1 then weight small (20%)
+    effort_component = 0.0
+    if effort_hours is not None:
+        try:
+            effort_component = max(0.0, min(1.0, (float(effort_hours) - 1.0) / 4.0))
+        except Exception:
+            effort_component = 0.0
 
-    # 6. Final Combined Score
-    # We clamp the result to ensure it stays within the [0, 1] contract
-    final_score = base_urgency + effort_modifier
-    return round(max(0.0, min(1.0, final_score)), 4)
+    urgency = min(1.0, due_component * 0.8 + effort_component * 0.2)
+    return round(urgency, 4)

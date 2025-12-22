@@ -64,6 +64,35 @@ class Task(models.Model):
     is_completed = models.BooleanField(default=False, verbose_name=_("is completed"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("created at"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("updated at"))
+
+    # ---- Decision contract required persistent fields ----
+    importance_score = models.FloatField(
+        default=0.0,
+        verbose_name=_("importance score"),
+        help_text=_("Weighted importance score ∈ [0,1].")
+    )
+    urgency_score = models.FloatField(
+        default=0.0,
+        verbose_name=_("urgency score"),
+        help_text=_("Urgency score ∈ [0,1].")
+    )
+    QUADRANT_CHOICES = [
+        ('Q1','Q1'), ('Q2','Q2'), ('Q3','Q3'), ('Q4','Q4')
+    ]
+    quadrant = models.CharField(
+        max_length=2,
+        choices=QUADRANT_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name=_("quadrant"),
+        help_text=_("Eisenhower quadrant assignment.")
+    )
+    rationale = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("rationale"),
+        help_text=_("Short explanation of prioritization decision.")
+    )
     
     class Meta:
         verbose_name = _("Task")
