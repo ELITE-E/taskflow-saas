@@ -154,6 +154,13 @@ CORS_ALLOWED_ORIGINS = [
 # 2. ALLOW ALL HEADERS AND METHODS
 # This is usually safe for development/API consumption, but can be restricted if necessary.
 CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_CREDENTIALS=True
+
+from corsheaders.defaults import default_headers
+CORS_ALLOW_ALL_HEADERS=list(default_headers) + [
+    'authorization',
+    'content-type',
+]
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',

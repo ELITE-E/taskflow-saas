@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from .rules import DecisionEngine
 from .cache import AIScoringCache
 from ..services import ExternalAIScorer
+from .urgency import compute_urgency
 
 # Configure logging for pipeline auditing
 logger = logging.getLogger(__name__)
@@ -12,14 +13,15 @@ logger = logging.getLogger(__name__)
 class AIOrchestrator:
     """
     The central coordination layer for task relevance scoring.
-    
-    This orchestrator implements a tiered intelligence pipeline:
-    1. Static Analysis: Rule-based engine to short-circuit deterministic tasks.
-    2. Memoization: Cache lookup to avoid redundant external API latency.
-    3. LLM Inference: Structured call to OpenAI as a final resort.
-    
-    The orchestrator ensures high performance, cost control, and a 
-    consistent interface for the downstream Weighted Average Formula.
+    Orchestrator now returns the full decision contract:
+      {
+        relevance_scores,
+        confidence,
+        importance_score,
+        urgency_score,
+        quadrant,
+        rationale
+      }
     """
 
     def __init__(self):
@@ -28,26 +30,45 @@ class AIOrchestrator:
         self.cache_manager = AIScoringCache()
         self.ai_service = ExternalAIScorer()
 
+    def _compute_importance(self, relevance: Dict[str, float], weights: Dict[str, float]) -> float:
+        total = 0.0
+        for k, v in relevance.items():
+            w = weights.get(k, 0.0)
+            total += float(v) * float(w)
+        # clamp 0..1
+        total = max(0.0, min(1.0, total))
+        return round(total, 4)
+
+    def _compute_quadrant(self, importance: float, urgency: float) -> str:
+        if importance >= 0.5 and urgency >= 0.5:
+            return 'Q1'
+        if importance >= 0.5 and urgency < 0.5:
+            return 'Q2'
+        if importance < 0.5 and urgency >= 0.5:
+            return 'Q3'
+        return 'Q4'
+
+    def _make_rationale(self, relevance: Dict[str, float], importance: float, urgency: float) -> str:
+        if not relevance:
+            return "No relevance data."
+        dominant = max(relevance.items(), key=lambda x: x[1])
+        domain, score = dominant[0], dominant[1]
+        return f"Dominant: {domain} ({score:.2f}); importance {importance:.2f}, urgency {urgency:.2f}."
+
     def get_relevance_scores(
         self, 
         task_title: str, 
         task_description: str, 
-        user_weights: Dict[str, float]
+        user_weights: Dict[str, float],
+        due_date: Optional[str] = None,
+        effort_estimate: Optional[int] = None
     ) -> Dict[str, Any]:
         """
-        Coordinates the flow of data to obtain task relevance scores.
-
-        Args:
-            task_title: Title of the task to be analyzed.
-            task_description: Detailed description of the task.
-            user_weights: Dictionary of strategic goals and their associated weights.
-
-        Returns:
-            A dictionary containing 'relevance_scores' and 'confidence'.
+        Coordinates the flow of data to obtain task relevance scores and compute
+        the final decision contract values.
         """
-        
+
         # --- LAYER 1: RULE-BASED SHORT-CIRCUIT ---
-        # Checks for high-certainty deterministic outcomes (e.g., "Pay electricity bill")
         should_skip, deterministic_scores = self.rules_engine.get_short_circuit_decision(
             task_title, 
             task_description, 
@@ -56,29 +77,39 @@ class AIOrchestrator:
         
         if should_skip and deterministic_scores:
             logger.info(f"Orchestrator: Rule-based skip for '{task_title}'")
-            return deterministic_scores
-
-        # --- LAYER 2 & 3: CACHE-WRAPPED AI SCORING ---
-        # The cache manager handles SHA256 hashing of inputs. If a cache miss occurs, 
-        # it executes the lambda function calling the ExternalAIScorer.
-        try:
-            
-            final_scores = self.cache_manager.get_or_set_score(
-                task_title=task_title,
-                task_description=task_description,
-                user_weights=user_weights,
-                scoring_func=lambda: self.ai_service.score_task(
-                    task_title, 
-                    task_description, 
-                    user_weights
+            relevance = deterministic_scores.get("relevance_scores", deterministic_scores)
+            confidence = deterministic_scores.get("confidence", 1.0)
+        else:
+            # --- LAYER 2 & 3: CACHE-WRAPPED AI SCORING ---
+            try:
+                final_scores = self.cache_manager.get_or_set_score(
+                    task_title=task_title,
+                    task_description=task_description,
+                    user_weights=user_weights,
+                    scoring_func=lambda: self.ai_service.score_task(
+                        task_title, 
+                        task_description, 
+                        user_weights
+                    )
                 )
-            )
-            return final_scores
+                relevance = final_scores.get("relevance_scores", final_scores)
+                confidence = final_scores.get("confidence", 0.0)
+            except Exception as e:
+                logger.exception(f"Orchestrator: Pipeline failure for '{task_title}': {str(e)}")
+                relevance = {k: 0.25 for k in user_weights.keys()}
+                confidence = 0.0
 
-        except Exception as e:
-            logger.exception(f"Orchestrator: Pipeline failure for '{task_title}': {str(e)}")
-            # Fail-safe: Return a neutral relevance profile to prevent system-wide crashes
-            return {
-                "relevance_scores": {domain: 0.25 for domain in user_weights.keys()},
-                "confidence": 0.0
-            }
+        # Compute derived decision contract values
+        importance = self._compute_importance(relevance, user_weights)
+        urgency = compute_urgency(due_date, effort_estimate)
+        quadrant = self._compute_quadrant(importance, urgency)
+        rationale = self._make_rationale(relevance, importance, urgency)
+
+        return {
+            "relevance_scores": relevance,
+            "confidence": float(confidence),
+            "importance_score": importance,
+            "urgency_score": urgency,
+            "quadrant": quadrant,
+            "rationale": rationale
+        }
