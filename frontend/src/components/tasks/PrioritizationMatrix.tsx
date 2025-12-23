@@ -33,12 +33,7 @@ const PrioritizationMatrix: React.FC = () => {
   return (
     <div className="prioritization-matrix">
       <h2>Strategic Task Matrix</h2>
-      
-      
-
-[Image of Eisenhower Matrix quadrants]
-
-      
+            
       <div className="matrix-grid" style={matrixGridStyle}>
         <QuadrantSection 
           title="DO NOW" 

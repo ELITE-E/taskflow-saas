@@ -9,7 +9,6 @@ urlpatterns = [
     # Custom registration endpoiNT
     path('register/',RegisterView, name='auth_register'),
     
-    
     # Simple JWT login endpoint, customized to use the email field
     # We pass the custom serializer to the view
     path(
@@ -18,7 +17,7 @@ urlpatterns = [
         name='token_obtain_pair'
     ),
     
-    # TokenRefreshView (No change needed here)
+    # TokenRefreshView 
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('user/',user_detail_view ,name='user_detail')
 ]

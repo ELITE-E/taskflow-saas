@@ -4,9 +4,7 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from django.conf import settings
-from openai import OpenAI, APIError, APIConnectionError, RateLimitError
-
-# Configure logging
+from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 class ExternalAIScorer:
@@ -24,7 +22,7 @@ class ExternalAIScorer:
     - Deterministic JSON output.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo-0125"):
+    def __init__(self, api_key: str | None = None, **kwargs):
         """
         Initialize the OpenAI client.
         
@@ -32,13 +30,18 @@ class ExternalAIScorer:
             api_key: Optional API key. Defaults to settings.OPENAI_API_KEY.
             model: The OpenAI model to use (default: gpt-3.5-turbo-0125 for JSON mode support).
         """
+        # Prefer explicit arg, fallback to Django settings (which already reads os.environ)
         self.api_key = api_key or getattr(settings, 'OPENAI_API_KEY', None)
-        self.model = model
-        
         if not self.api_key:
-            logger.warning("ExternalAIScorer initialized without an API key.")
-        
-        self.client = OpenAI(api_key=self.api_key, max_retries=3)
+            # Fail fast with a clear message so workers/web don't crash with obscure stacktrace
+            raise RuntimeError(
+                "OPENAI_API_KEY is not configured. "
+                "Set the OPENAI_API_KEY environment variable (export OPENAI_API_KEY=...) "
+                "and restart Django and Celery workers."
+            )
+        # initialize OpenAI client with explicit api_key
+        self.client = OpenAI(api_key=self.api_key, **kwargs)
+        logger.debug("ExternalAIScorer initialized with OpenAI client.")
 
     def score_task(
         self, 

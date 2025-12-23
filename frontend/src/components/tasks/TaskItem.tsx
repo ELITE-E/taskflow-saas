@@ -1,14 +1,10 @@
 // src/components/tasks/TaskItem.tsx
+import React from 'react';
 import { Task } from '@/types/tasks';
-import { Brain, Clock, CheckCircle } from 'lucide-react'; // Icons
 
-interface TaskItemProps {
-  task: Task;
-}
-
-export const TaskItem = ({ task }: TaskItemProps) => {
+export const TaskItem = ({ task }: { task: Task }) => {
   return (
-    <div className="p-4 border-b flex items-center justify-between">
+    <div className="task-item p-4 border-b flex items-center justify-between">
       <div>
         <h3 className={`font-medium ${!task.is_prioritized ? 'text-gray-400' : 'text-gray-900'}`}>
           {task.title}

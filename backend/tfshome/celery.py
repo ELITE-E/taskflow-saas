@@ -1,5 +1,7 @@
 import os
+from dotenv import load_dotenv
 
+load_dotenv()  # ← SAME FILE, SAME VARS
 from celery import Celery
 
 # Set the default Django settings module for the 'celery' program.

@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
 from datetime import timedelta
 import os
+
+load_dotenv()
 """
 Django settings for tfshome project.
 
@@ -188,12 +191,3 @@ SIMPLE_JWT = {
     # 'USER_ID_FIELD': 'id',
     # 'USER_ID_CLAIM': 'user_id',
 }
-# CELERY CONFIGURATION 
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC' # Use the same timezone as Django
-
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

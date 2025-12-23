@@ -12,7 +12,17 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Add request interceptor to attach access token as Bearer
+// Helper to resolve a possibly-relative url to a pathname
+const getPathname = (url?: string) => {
+  try {
+    return new URL(url || '', API_BASE_URL).pathname;
+  } catch {
+    return String(url || '');
+  }
+};
+
+// Request interceptor: inject Authorization header from cookies only.
+// Never read tokens from Redux / localStorage.
 apiClient.interceptors.request.use((config) => {
   const token = Cookies.get('access_token');
   if (token) {
@@ -21,81 +31,108 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
-// --- Token Refresh Helper ---
-export const refreshAccessToken = async () => {
-    const refreshToken = Cookies.get('refresh_token');
-    if (!refreshToken) return null;
 
-    try {
-        const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken
-        });
-        const { access } = response.data;
-        Cookies.set('access_token', access, { expires: 1/24 }); // 1 hour
-        return access;
-    } catch (error) {
-        // Refresh token failed (it's expired or invalid)
-        console.error("Refresh token failed, forcing logout.");
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        return null;
+// Refresh helper: POST to refresh endpoint, return new access token or null.
+// Does not dispatch redux actions; caller decides what to do on null.
+export const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = Cookies.get('refresh_token');
+  if (!refreshToken) return null;
+
+  try {
+    const resp = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh: refreshToken }, {
+      headers: { 'Content-Type': 'application/json' },
+      withCredentials: true,
+    });
+    const access = resp.data?.access;
+    if (access) {
+      // store the new access token in cookie (HTTP-only cookies are preferred in prod)
+      Cookies.set('access_token', access, { expires: 1 / 24 }); // short expiry
+      return access;
     }
-}
+    return null;
+  } catch (err) {
+    // On refresh failure clear tokens and return null.
+    Cookies.remove('access_token');
+    Cookies.remove('refresh_token');
+    return null;
+  }
+};
 
-// --- Axios Interceptors (The Key to Auto-Refresh) ---
+// Response interceptor: attempt single refresh on 401 ONLY.
+// Queue concurrent 401-failures while refresh is in progress.
+// NEVER attempt refresh on 403 / 405 / 500 / network errors.
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{ resolve: (t: string) => void; reject: (e: any) => void }> = [];
 
 const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error);
-        } else if (token) {
-            prom.resolve(token);
-        }
-    });
-    failedQueue = [];
+  failedQueue.forEach((p) => {
+    if (error) p.reject(error);
+    else p.resolve(token as string);
+  });
+  failedQueue = [];
 };
 
 apiClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-        
-        // Check for 401 AND ensure it's not the refresh endpoint itself
-        if (error.response?.status === 401 && originalRequest.url !== '/auth/token/refresh/') {
-            
-            // 1. If currently refreshing, add to queue
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                }).then(token => {
-                    originalRequest.headers['Authorization'] = `Bearer ${token}`;
-                    return apiClient(originalRequest);
-                }).catch(err => {
-                    return Promise.reject(err);
-                });
-            }
+  (res) => res,
+  async (err) => {
+    const originalRequest = err.config;
 
-            // 2. Start the refresh process
-            isRefreshing = true;
-            const newAccessToken = await refreshAccessToken();
-            isRefreshing = false;
+    // If there's no response or no config, just forward the error
+    if (!err.response || !originalRequest) return Promise.reject(err);
 
-            if (newAccessToken) {
-                // Tokens updated, retry queued requests
-                processQueue(null, newAccessToken);
-                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-                return apiClient(originalRequest);
-            } else {
-                // Refresh failed (refresh token expired) -> Force Logout
-                processQueue(error, null); 
-                // We dispatch logout outside the interceptor (e.g., in a Redux listener) 
-                // to avoid state loop issues within Axios.
-            }
-        }
-        return Promise.reject(error);
+    const status = err.response.status;
+    // Only attempt refresh for 401 status (unauthenticated). All other codes are not retriable here.
+    if (status !== 401) {
+      return Promise.reject(err);
     }
+
+    // Avoid trying to refresh if this request is the refresh endpoint itself.
+    const reqPath = getPathname(originalRequest.url);
+    if (reqPath.endsWith('/auth/token/refresh/')) {
+      return Promise.reject(err);
+    }
+
+    // Prevent infinite retry loops
+    if (originalRequest._retry) {
+      return Promise.reject(err);
+    }
+    originalRequest._retry = true;
+
+    if (isRefreshing) {
+      // Queue this request until refresh completes
+      return new Promise((resolve, reject) => {
+        failedQueue.push({
+          resolve: (token: string) => {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            resolve(apiClient(originalRequest));
+          },
+          reject: (e) => reject(e),
+        });
+      });
+    }
+
+    isRefreshing = true;
+    try {
+      const newToken = await refreshAccessToken();
+      isRefreshing = false;
+
+      if (newToken) {
+        processQueue(null, newToken);
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+        return apiClient(originalRequest);
+      } else {
+        // Refresh failed: reject queued requests and propagate original 401 up
+        processQueue(err, null);
+        return Promise.reject(err);
+      }
+    } catch (refreshErr) {
+      isRefreshing = false;
+      processQueue(refreshErr, null);
+      return Promise.reject(refreshErr);
+    }
+  }
 );
 
 

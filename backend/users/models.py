@@ -44,7 +44,6 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     date_joined = models.DateTimeField(_('date joined'), auto_now_add=True)
 
     # Custom field specific to your application
-    # This will be used in Module 2 for scheduling tasks optimally
     timezone = models.CharField(
         _('Timezone'),
         max_length=60,
