@@ -20,14 +20,12 @@ class TaskListCreateView(generics.ListCreateAPIView):
     """
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
+    queryset = Task.objects.all()
 
     def get_queryset(self):
-        # Retrieve non-completed tasks for the current user, sorted by due_date.
-        return Task.objects.filter(
-            user=self.request.user, 
-            is_completed=False
-        ).order_by('due_date') # Default sorting for the list view
-    
+        # ensure user only sees own tasks
+        return Task.objects.filter(user=self.request.user)
+
 list_create_view=TaskListCreateView.as_view()
 
 class TaskRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):

@@ -5,10 +5,23 @@ from typing import Dict, Any, Optional
 from celery import shared_task
 from .orchestrator import AIOrchestrator
 from ..models import Task
+from goals.models import GoalWeights, Goal
 from django.db import transaction
 
 # Configure logging for background worker monitoring
 logger = logging.getLogger(__name__)
+
+def _normalize_goal_weights_from_goals(goals_qs):
+    raw = {}
+    for g in goals_qs:
+        if g.weight is None:
+            continue
+        key = getattr(g, 'slug', None) or g.title
+        raw[str(key)] = float(g.weight)
+    total = sum(raw.values()) if raw else 0.0
+    if total <= 0:
+        return {}
+    return {k: (v / total) for k, v in raw.items()}
 
 @shared_task(
     bind=True,
@@ -22,58 +35,64 @@ logger = logging.getLogger(__name__)
 def run_ai_relevance_scoring(
     self, 
     task_id: int,
-    task_title: str, 
-    task_description: str, 
-    due_date: Optional[str],
-    effort_estimate: Optional[int],
-    user_weights: Dict[str, float]
-) -> Dict[str, Any]:
+    user_id: int
+) -> Optional[Dict[str, Any]]:
     """
-    Asynchronous Celery task for executing the AI scoring pipeline.
-
-    Now: orchestrator returns full decision contract; this task MUST persist results
-    to the Task DB row before exiting.
+    Worker: fetch Task + GoalWeights from DB, compute decision contract via orchestrator,
+    persist results deterministically. Input = (task_id, user_id) only.
     """
-    logger.info(f"Starting AI relevance scoring for Task ID: {task_id}")
-
+    logger.info(f"AI scoring started for Task {task_id} (user {user_id})")
     try:
-        # Initialize the Orchestrator (internalizes rules, cache, and services)
+        task = Task.objects.filter(id=task_id).first()
+        if not task:
+            logger.warning(f"Task {task_id} not found. Exiting worker.")
+            return None
+
+        # Build normalized user_weights:
+        gw = GoalWeights.objects.filter(user_id=user_id).first()
+        if gw:
+            # Use explicit GoalWeights fields (already normalized by model clean)
+            user_weights = {
+                'work_bills': float(gw.work_bills),
+                'study': float(gw.study),
+                'health': float(gw.health),
+                'relationships': float(gw.relationships)
+            }
+        else:
+            # Fallback: derive from Goals (weights 1..10) and normalize
+            user_goals = Goal.objects.filter(user_id=user_id, is_archived=False)
+            user_weights = _normalize_goal_weights_from_goals(user_goals)
+
+        # Ensure there is at least a fallback set of dimensions
+        if not user_weights:
+            # deterministic fallback: equal weights for four canonical dimensions
+            user_weights = {k: 0.25 for k in ['work_bills', 'study', 'health', 'relationships']}
+
         orchestrator = AIOrchestrator()
-        
-        # Execute the tiered scoring pipeline and compute importance/urgency/quadrant
+
         result = orchestrator.get_relevance_scores(
-            task_title=task_title,
-            task_description=task_description,
+            task_title=task.title,
+            task_description=task.description,
             user_weights=user_weights,
-            due_date=due_date,
-            effort_estimate=effort_estimate
+            due_date=(task.due_date.isoformat() if task.due_date else None),
+            effort_estimate=int(task.effort_estimate) if task.effort_estimate is not None else None
         )
 
-        logger.info(f"Successfully scored Task ID: {task_id} (Confidence: {result.get('confidence')})")
+        # Persist results atomically
+        with transaction.atomic():
+            Task.objects.filter(id=task_id).update(
+                importance_score=result.get('importance_score', 0.0),
+                urgency_score=result.get('urgency_score', 0.0),
+                quadrant=result.get('quadrant'),
+                rationale=result.get('rationale', "") or "",
+                priority_score=result.get('importance_score', 0.0),
+                is_prioritized=True
+            )
 
-        # Persist results to the DB in a transaction
-        try:
-            with transaction.atomic():
-                Task.objects.filter(id=task_id).update(
-                    importance_score=result.get('importance_score', 0.0),
-                    urgency_score=result.get('urgency_score', 0.0),
-                    quadrant=result.get('quadrant', None),
-                    rationale=result.get('rationale', "") or "",
-                    priority_score=result.get('importance_score', 0.0),
-                    is_prioritized=True
-                )
-        except Exception as e:
-            logger.exception(f"Failed to persist AI results for Task ID {task_id}: {str(e)}")
-            # Raise to trigger retry according to task decorator
-            raise
-
+        logger.info(f"AI scoring persisted for Task {task_id}")
         return result
 
     except Exception as exc:
-        # Log specifically which task failed to assist with debugging
-        logger.error(
-            f"AI Scoring Pipeline error for Task ID: {task_id}. "
-            f"Attempt {self.request.retries}/{self.max_retries}. Error: {str(exc)}"
-        )
-        # Re-raise to trigger the autoretry mechanism defined in the decorator
-        raise exc
+        logger.exception(f"AI scoring failed for Task {task_id}: {exc}")
+        # Re-raise for Celery retry policy
+        raise

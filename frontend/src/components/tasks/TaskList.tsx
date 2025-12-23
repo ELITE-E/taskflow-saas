@@ -10,6 +10,7 @@ import { RootState, AppDispatch } from '@/redux/store';
  export default function TaskList() {
    const dispatch = useDispatch<AppDispatch>();
    const { tasks, loading, error } = useSelector((state: RootState) => state.tasks);
+   console.log(tasks);
    // Fetch tasks when the component mounts
    useEffect(() => {
      dispatch(getPrioritizedTasks());

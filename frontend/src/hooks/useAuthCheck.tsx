@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import Cookies from 'js-cookie';
-import { setLoading, setUser, logout } from '@/redux/slices/authReducer';
-import apiClient from '@/lib/apiClient'; // Ensure correct client import
+import { setLoading, setUser, logout } from './../redux/slices/authReducer';
+import apiClient from './../lib/apiClient'; 
 
 export const useAuthCheck = () => {
     const dispatch = useDispatch();
