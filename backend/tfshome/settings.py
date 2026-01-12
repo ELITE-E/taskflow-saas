@@ -1,8 +1,12 @@
-from dotenv import load_dotenv
-from datetime import timedelta
+# Add these at the top of your settings.py
 import os
+from datetime import timedelta
+from dotenv import load_dotenv
+import dj_database_url
 
 load_dotenv()
+
+
 """
 Django settings for tfshome project.
 
@@ -85,12 +89,25 @@ WSGI_APPLICATION = 'tfshome.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Replace the DATABASES section of your settings.py with this
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,       # Keeps connections open for better performance
+        conn_health_checks=True # Re-opens connections if Neon goes to sleep
+    )
 }
+
+# Essential for Neon's serverless connection pooler
+DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 # Password validation
