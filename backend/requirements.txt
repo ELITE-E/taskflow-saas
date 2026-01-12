@@ -26,3 +26,8 @@ openai
 
 #
 python-dotenv
+
+#Connecting to pSQL db
+ psycopg2-binary 
+ 
+ dj-database-url
