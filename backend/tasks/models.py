@@ -94,6 +94,14 @@ class Task(models.Model):
         help_text=_("Short explanation of prioritization decision.")
     )
     
+    # AI Processing tracking
+    last_analyzed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("last analyzed at"),
+        help_text=_("Timestamp of when the task was last processed by the AI engine.")
+    )
+    
     class Meta:
         verbose_name = _("Task")
         verbose_name_plural = _("Tasks")
