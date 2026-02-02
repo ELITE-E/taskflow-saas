@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-
+from django.conf import settings
 load_dotenv()  # ← SAME FILE, SAME VARS
 from celery import Celery
 
@@ -16,7 +16,8 @@ app = Celery('tfshome')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django apps.
-app.autodiscover_tasks()
+app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+app.autodiscover_tasks(['tasks.ai_engine'])
 
 
 @app.task(bind=True, ignore_result=True)

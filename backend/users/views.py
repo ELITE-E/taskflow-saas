@@ -1,5 +1,3 @@
-from django.shortcuts import render
-
 # Create your views here.
 from rest_framework.views import APIView
 from rest_framework import  status
@@ -10,7 +8,7 @@ from .serializers import (UserRegistrationSerializer,
                         ) 
 from rest_framework.permissions import AllowAny,IsAuthenticated
 
-class RegisterView():
+class RegisterView(APIView):
     """
     Handles user registration. On successful creation, it automatically
     logs the user in by generating and returning the Access and Refresh tokens.
@@ -20,7 +18,7 @@ class RegisterView():
     
     def post(self, request, *args, **kwargs):
         # 1. Validate incoming registration data
-        serializer = self.get_serializer(data=request.data)
+        serializer = UserRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save() # User is created here
 
@@ -59,7 +57,7 @@ class RegisterView():
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-
+register_view=RegisterView.as_view()
 class UserDetailAPIView(APIView):
     """
     Docstring for UserDetailAPIView
