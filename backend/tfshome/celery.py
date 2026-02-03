@@ -17,7 +17,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-app.autodiscover_tasks(['tasks.ai_engine'])
+app.autodiscover_tasks(['celery_tasks.ai_engine'])
 
 
 @app.task(bind=True, ignore_result=True)

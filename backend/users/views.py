@@ -65,7 +65,7 @@ class UserDetailAPIView(APIView):
     Requires a valid JWT Access Token.
     """
     permission_classes=[IsAuthenticated]
-    def get_user_details(self,request,format=None,*args,**kwargs):
+    def get(self,request,format=None,*args,**kwargs):
         # request.user is automatically populated by JWTAuthentication if token is valid
         serializer = UserDetailsSerializer(request.user)
         return Response(serializer.data)
