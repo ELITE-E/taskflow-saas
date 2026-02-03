@@ -208,3 +208,6 @@ SIMPLE_JWT = {
     # 'USER_ID_FIELD': 'id',
     # 'USER_ID_CLAIM': 'user_id',
 }
+
+#Set up OPENAI API key 
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
