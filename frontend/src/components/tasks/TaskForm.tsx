@@ -37,7 +37,7 @@ const TaskSchema = z.object({
       return Number.isFinite(n) ? Math.round(n) : val;
     }
     return val;
-  }, z.number().int().min(1).max(10)),
+  }, z.number().int().min(1).max(5)),
 });
 
 type TaskFormValues = z.infer<typeof TaskSchema>;
@@ -143,12 +143,12 @@ export default function TaskForm() {
               name="effort_estimate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Effort (1–10, relative difficulty)</FormLabel>
+                  <FormLabel>Effort (1–5, relative difficulty)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min={1}
-                      max={10}
+                      max={5}
                       step={1}
                       {...field}
                       value={field.value ?? ''}
